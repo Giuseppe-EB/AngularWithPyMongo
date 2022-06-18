@@ -1,0 +1,58 @@
+version: '3.9'
+
+services:
+    myapp-mongodb:
+        image: mongo:latest
+        container_name: myapp-mongodb
+        restart: always
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: admin
+            MONGO_INITDB_ROOT_PASSWORD: admin
+            MONGO_INITDB_DATABASE: myapp
+        ports:
+            - 27017:27017
+        volumes:
+            - ./backend/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+        networks:
+          - myapp
+    myapp-mongo-express:
+        image: mongo-express
+        container_name: myapp-mongo-express
+        depends_on: 
+          - "myapp-mongodb"
+        ports:
+          - 8111:8081
+        environment:
+            ME_CONFIG_MONGODB_SERVER: myapp-mongodb
+            ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+            ME_CONFIG_MONGODB_ADMINPASSWORD: admin
+        networks:
+          - myapp
+    myapp-api:
+        image: flask-myapp-api:1.0
+        build: ./backend/
+        container_name: myapp-api
+        depends_on:
+          - "myapp-mongodb"
+        ports:
+          - 5000:5000
+        volumes:
+          - ./backend/:/home/server
+        networks:
+          - myapp
+    myapp-client:
+        image: myapp-client:0.1
+        build: ./client/
+        container_name: myapp-client
+        depends_on:
+          - "myapp-api"
+        ports:
+          - 4200:4200
+        volumes:
+          - ./client/:/app
+        networks:
+          - myapp
+
+networks:
+  myapp: 
+    name: myapp
